@@ -1,0 +1,39 @@
+{
+    "app": {
+        "name": "ResumeAI",
+        "tagline": "Smart CV Analysis with AI"
+    },
+    "upload": {
+        "button": "Upload PDF Resume",
+        "title": "Smart CV Analysis with AI"
+    },
+    "errors": {
+        "no_file": "No file provided",
+        "no_file_selected": "No file selected",
+        "file_too_large": "File too large",
+        "max_size": "Maximum size is {max_size}MB",
+        "invalid_type": "Invalid file type",
+        "only_pdf": "Only PDF files are allowed",
+        "empty_document": "Empty document",
+        "no_text": "PDF contains no readable text",
+        "corrupted": "Failed to read PDF",
+        "corrupted_detail": "File may be corrupted or encrypted",
+        "ai_failed": "Analysis failed",
+        "ai_unavailable": "AI service temporarily unavailable",
+        "invalid_response": "Invalid analysis result",
+        "malformed": "AI returned malformed response",
+        "config_error": "Service configuration error",
+        "internal": "Internal server error"
+    },
+    "results": {
+        "score": "Overall Score",
+        "strengths": "Strengths",
+        "weaknesses": "Weaknesses",
+        "summary": "Improved Summary",
+        "keywords": "Missing Keywords"
+    },
+    "api": {
+        "analyze_endpoint": "Analyze resume",
+        "history_endpoint": "Get analysis history"
+    }
+}

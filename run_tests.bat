@@ -1,0 +1,4 @@
+@echo off
+echo Running tests...
+python -m pytest tests\
+pause

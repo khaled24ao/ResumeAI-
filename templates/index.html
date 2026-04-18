@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">ResumeAI - Smart CV Analyzer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 2rem;
+            transition: direction 0.3s ease;
+        }
+        
+        [dir="rtl"] {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #00d4aa;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 1rem;
+        }
+        
+        .language-selector {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #e0e0e0;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #00d4aa, #00a88a);
+            color: #0f0f0f;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 170, 0.3);
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #333;
+            border-top-color: #00d4aa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .error-msg {
+            background: #ff4444;
+            color: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .results {
+            margin-top: 2rem;
+            display: none;
+        }
+        
+        .card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #333;
+        }
+        
+        .card h3 {
+            color: #888;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .score-card {
+            text-align: center;
+            background: linear-gradient(135deg, #1a1a1a, #252525);
+        }
+        
+        .score-value {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #00d4aa;
+        }
+        
+        .score-max {
+            font-size: 1.5rem;
+            color: #666;
+        }
+        
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        [dir="rtl"] .list-item {
+            flex-direction: row-reverse;
+        }
+        
+        .list-item:last-child { border-bottom: none; }
+        
+        .check-icon { color: #00d4aa; font-size: 1.2rem; }
+        .x-icon { color: #ff6b6b; font-size: 1.2rem; }
+        
+        .summary-text {
+            line-height: 1.6;
+            color: #ccc;
+            background: #252525;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        
+        .keyword {
+            display: inline-block;
+            background: #6b46c1;
+            color: #fff;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin: 0.25rem;
+        }
+        
+        .history-link {
+            display: block;
+            text-align: center;
+            margin-top: 2rem;
+            color: #00d4aa;
+            text-decoration: none;
+        }
+        
+        .history-link:hover {
+            text-decoration: underline;
+        }
+
+        /* RTL support */
+        [dir="rtl"] .upload-section {
+            align-items: flex-end;
+        }
+    </style>
+</head>
+<body>
+    <select class="language-selector" id="language-select" onchange="changeLanguage()">
+        <option value="en">English</option>
+        <option value="ar">العربية</option>
+    </select>
+
+    <div class="container">
+        <header>
+            <h1 id="app-name">ResumeAI</h1>
+            <p class="subtitle" id="app-tagline">Smart CV Analysis with AI</p>
+        </header>
+        
+        <div class="upload-section">
+            <button class="upload-btn" onclick="document.getElementById('file-input').click()" id="upload-btn">
+                Upload PDF Resume
+            </button>
+            <input type="file" id="file-input" accept=".pdf">
+            <div class="spinner" id="spinner"></div>
+            <div class="error-msg" id="error"></div>
+        </div>
+        
+        <div class="results" id="results"></div>
+        
+        <a href="/history-view" class="history-link" id="view-history">View Analysis History</a>
+    </div>
+    
+    <script>
+        // Translation strings
+        const translations = {
+            en: {
+                "app.name": "ResumeAI",
+                "app.tagline": "Smart CV Analysis with AI",
+                "upload.button": "Upload PDF Resume",
+                "results.score": "Overall Score",
+                "results.strengths": "Strengths",
+                "results.weaknesses": "Weaknesses",
+                "results.summary": "Improved Summary",
+                "results.keywords": "Missing Keywords",
+                "view.history": "View Analysis History"
+            },
+            ar: {
+                "app.name": "ريزيومAI",
+                "app.tagline": "تحليل السيرة الذاتية الذكي بالذكاء الاصطناعي",
+                "upload.button": "تحميل السيرة الذاتية (PDF)",
+                "results.score": "الدرجة الإجمالية",
+                "results.strengths": "النقاط القوية",
+                "results.weaknesses": "نقاط الضعف",
+                "results.summary": "ملخص محسن",
+                "results.keywords": "كلمات مفتاحية مفقودة",
+                "view.history": "عرض سجل التحليلات"
+            }
+        };
+
+        let currentLang = 'en';
+
+        function changeLanguage() {
+            const select = document.getElementById('language-select');
+            currentLang = select.value;
+            const dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+            
+            document.body.dir = dir;
+            document.documentElement.lang = currentLang;
+            
+            // Update all translatable elements
+            document.getElementById('app-name').textContent = translations[currentLang]['app.name'];
+            document.getElementById('app-tagline').textContent = translations[currentLang]['app.tagline'];
+            document.getElementById('upload-btn').textContent = translations[currentLang]['upload.button'];
+            document.getElementById('view-history').textContent = translations[currentLang]['view.history'];
+            
+            // Update results if visible
+            if (document.getElementById('results').style.display === 'block') {
+                displayResults(window.lastResult);
+            }
+            
+            // Save preference
+            localStorage.setItem('language', currentLang);
+        }
+
+        // Load saved language
+        const savedLang = localStorage.getItem('language');
+        if (savedLang) {
+            document.getElementById('language-select').value = savedLang;
+            changeLanguage();
+        }
+
+        const fileInput = document.getElementById('file-input');
+        const spinner = document.getElementById('spinner');
+        const errorDiv = document.getElementById('error');
+        const resultsDiv = document.getElementById('results');
+        
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            spinner.style.display = 'block';
+            errorDiv.style.display = 'none';
+            resultsDiv.style.display = 'none';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/api/v1/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+                
+                window.lastResult = data.result;
+                displayResults(data.result);
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                spinner.style.display = 'none';
+            }
+        });
+        
+        function displayResults(result) {
+            const t = translations[currentLang];
+            
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = `
+                <div class="card score-card">
+                    <h3>${t['results.score']}</h3>
+                    <div>
+                        <span class="score-value">${result.score}</span>
+                        <span class="score-max">/10</span>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>${t['results.strengths']}</h3>
+                    ${result.strengths.map(s => `
+                        <div class="list-item">
+                            <span class="check-icon">✓</span>
+                            <span>${s}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="card">
+                    <h3>${t['results.weaknesses']}</h3>
+                    ${result.weaknesses.map(w => `
+                        <div class="list-item">
+                            <span class="x-icon">✗</span>
+                            <span>${w}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="card">
+                    <h3>${t['results.summary']}</h3>
+                    <p class="summary-text">${result.improved_summary}</p>
+                </div>
+                
+                <div class="card">
+                    <h3>${t['results.keywords']}</h3>
+                    ${result.keywords_missing.map(k => `<span class="keyword">${k}</span>`).join('')}
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: "5s"
+
+  - name: PostgreSQL
+    type: postgres
+    url: postgres:5432
+    database: resumeai
+    user: resumeai
+    editable: true
+    jsonData:
+      sslmode: "disable"
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+
+dashboards:
+  - name: ResumeAI Overview
+    folder: ResumeAI
+    type: file
+    options:
+      path: /etc/grafana/provisioning/dashboards/resumeai-overview.json
