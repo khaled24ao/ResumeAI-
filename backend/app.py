@@ -1,6 +1,8 @@
 import os
 from dotenv import load_dotenv
 
+
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
@@ -15,6 +17,8 @@ from backend.utils.metrics import track_requests, get_metrics_endpoint
 logger = get_logger(__name__)
 
 
+from backend.config import flask_config, rate_limit_config, db_config, monitoring_config
+
 def create_app(config_object=None) -> Flask:
     """Application factory pattern."""
     app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"))
@@ -23,13 +27,11 @@ def create_app(config_object=None) -> Flask:
     if config_object:
         app.config.from_object(config_object)
     else:
-        env = os.getenv("FLASK_ENV", "production")
-        if env == "development":
-            app.config["DEBUG"] = True
-            app.config["ENV"] = "development"
-        else:
-            app.config["DEBUG"] = False
-            app.config["ENV"] = "production"
+        app.config["DEBUG"] = flask_config.debug
+        app.config["ENV"] = flask_config.env
+        app.config["TESTING"] = flask_config.testing
+        app.config["SECRET_KEY"] = flask_config.secret_key
+
 
     # Configure rate limiter storage
     redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
@@ -37,10 +39,9 @@ def create_app(config_object=None) -> Flask:
     # In development, use memory storage (no Redis needed)
     # In production, try Redis first, fall back to memory if unavailable
     use_redis = False
-    if app.config.get("ENV") != "development":
+    if app.config.get("ENV") != "development" and not app.config.get("TESTING"):
         try:
             import redis
-
             test_redis = redis.from_url(redis_url, socket_connect_timeout=2)
             test_redis.ping()
             test_redis.close()
@@ -49,17 +50,20 @@ def create_app(config_object=None) -> Flask:
         except Exception as e:
             logger.warning(f"Redis not available ({e}), using in-memory storage")
     else:
-        logger.info("Development mode: using in-memory rate limit storage")
+        logger.info(f"Using { 'TESTING' if app.config.get('TESTING') else 'development' } mode: using in-memory rate limit storage")
 
     app.config["RATELIMIT_STORAGE_URL"] = redis_url if use_redis else "memory://"
-    app.config["RATELIMIT_STRATEGY"] = "fixed-window"
+    app.config["RATELIMIT_STRATEGY"] = rate_limit_config.strategy
 
     # Initialize rate limiter
     limiter.init_app(app)
     if app.config.get("ENV") == "development":
-        limiter.default_limits = ["1000 per hour"]
+        limiter.default_limits = [rate_limit_config.dev_limit]
     else:
-        limiter.default_limits = ["100 per day", "20 per hour"]
+        limiter.default_limits = [
+            f"{rate_limit_config.default_per_day} per day",
+            f"{rate_limit_config.default_per_hour} per hour"
+        ]
 
     # Initialize database
     try:
@@ -67,6 +71,7 @@ def create_app(config_object=None) -> Flask:
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
+
 
     # Register request tracking middleware
     track_requests(app)
@@ -166,24 +171,38 @@ def create_app(config_object=None) -> Flask:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analysis History - ResumeAI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #00f2fe;
+            --secondary: #4facfe;
+            --accent: #00d4aa;
+            --bg: #050505;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text: #e0e0e0;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; padding: 2rem; }
-        .container { max-width: 900px; margin: 0 auto; }
-        h1 { color: #00d4aa; margin-bottom: 2rem; }
-        .back-link { color: #00d4aa; text-decoration: none; margin-bottom: 1rem; display: inline-block; }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); padding: 4rem 2rem; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { font-size: 2.5rem; font-weight: 700; background: linear-gradient(to right, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 3rem; }
+        .back-link { color: #888; text-decoration: none; margin-bottom: 2rem; display: inline-block; transition: color 0.3s; }
+        .back-link:hover { color: var(--primary); }
+        .table-container { background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--card-border); border-radius: 24px; overflow: hidden; }
         .table { width: 100%; border-collapse: collapse; }
-        .table th, .table td { padding: 1rem; text-align: left; border-bottom: 1px solid #333; }
-        .table th { color: #888; font-weight: 500; }
-        .score { color: #00d4aa; font-weight: 600; }
-        .empty { color: #666; text-align: center; padding: 2rem; }
+        .table th, .table td { padding: 1.5rem; text-align: left; border-bottom: 1px solid var(--card-border); }
+        .table th { color: #888; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .score { color: var(--accent); font-weight: 600; font-size: 1.1rem; }
+        .empty { color: #666; text-align: center; padding: 4rem; font-weight: 300; }
         .date { color: #666; font-size: 0.9rem; }
+        tr:hover { background: rgba(255, 255, 255, 0.02); }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="/" class="back-link">← Back to Home</a>
+        <a href="/" class="back-link">← Back to Analyzer</a>
         <h1>Analysis History</h1>
+        <div class="table-container">
 """
         if not history_data:
             html += (
@@ -192,25 +211,27 @@ def create_app(config_object=None) -> Flask:
         else:
             html += """<table class="table">
                 <thead>
-                    <tr><th>ID</th><th>Filename</th><th>Score</th><th>Date</th><th>Time (ms)</th></tr>
+                    <tr><th>ID</th><th>Filename</th><th>Score</th><th>Date</th><th>Time</th></tr>
                 </thead>
                 <tbody>
 """
             for a in history_data:
                 html += f"""<tr>
-                    <td>{a["id"]}</td>
-                    <td>{a["filename"]}</td>
+                    <td>#{a["id"]}</td>
+                    <td style="font-weight: 500;">{a["filename"]}</td>
                     <td class="score">{a["score"]}/10</td>
                     <td class="date">{a["created_at"]}</td>
-                    <td class="date">{a["processing_time_ms"] or "-"}</td>
+                    <td class="date">{a["processing_time_ms"]}ms</td>
                 </tr>
 """
             html += """</tbody></table>"""
 
         html += """
+        </div>
     </div>
 </body>
 </html>"""
+
         return html
 
     logger.info(f"Application initialized in {app.config.get('ENV', 'unknown')} mode")

@@ -34,22 +34,14 @@ def rate_limit(limit_string: Optional[str] = None):
 
     Args:
         limit_string: Rate limit string (e.g., "10 per minute")
-
-    Usage:
-        @app.route("/api/test")
-        @rate_limit("5 per minute")
-        def test():
-            return "test"
     """
-
     def decorator(f: Callable):
-        @wraps(f)
-        def wrapped(*args, **kwargs):
-            return f(*args, **kwargs)
-
-        return wrapped
+        if limit_string:
+            return limiter.limit(limit_string)(f)
+        return f
 
     return decorator
+
 
 
 def get_rate_limit_info():

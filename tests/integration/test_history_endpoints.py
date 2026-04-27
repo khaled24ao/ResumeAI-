@@ -60,19 +60,25 @@ class TestHistoryEndpoints:
 
     def test_get_history_with_results(self, client):
         """Test getting history with results."""
-        mock_analysis = MagicMock()
-        mock_analysis.id = 1
-        mock_analysis.filename = "test.pdf"
-        mock_analysis.score = 8
-        mock_analysis.created_at = datetime.utcnow()
-        mock_analysis.processing_time_ms = 1500
+        mock_analysis = {
+            "id": 1,
+            "filename": "test.pdf",
+            "score": 8,
+            "created_at": datetime.utcnow().isoformat(),
+            "processing_time_ms": 1500
+        }
         
         with patch('backend.routes.history.get_db_context') as mock_db:
             mock_session = MagicMock()
-            mock_session.query.return_value.offset.return_value.limit.return_value.all.return_value = [mock_analysis]
+            # Mock the models to have a to_dict method
+            mock_obj = MagicMock()
+            mock_obj.to_dict.return_value = mock_analysis
+            
+            mock_session.query.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [mock_obj]
             mock_session.query.return_value.count.return_value = 1
             mock_db.return_value.__enter__ = MagicMock(return_value=mock_session)
             mock_db.return_value.__exit__ = MagicMock(return_value=None)
+
             
             response = client.get('/api/v1/history')
             assert response.status_code == 200
@@ -91,12 +97,23 @@ class TestHistoryEndpoints:
         mock_analysis.keywords_missing_list = ["Python", "Docker"]
         mock_analysis.created_at = datetime.utcnow()
         mock_analysis.processing_time_ms = 1000
+        # Mock to_dict for HistoryDetail
+        mock_analysis.to_dict.return_value = {
+            "id": 1, "filename": "test.pdf", "score": 7,
+            "improved_summary": "Good candidate",
+            "strengths": ["Skill 1", "Skill 2"],
+            "weaknesses": ["Weak 1"],
+            "keywords_missing": ["Python", "Docker"],
+            "created_at": mock_analysis.created_at.isoformat(),
+            "processing_time_ms": 1000
+        }
         
         with patch('backend.routes.history.get_db_context') as mock_db:
             mock_session = MagicMock()
             mock_session.query.return_value.filter.return_value.first.return_value = mock_analysis
             mock_db.return_value.__enter__ = MagicMock(return_value=mock_session)
             mock_db.return_value.__exit__ = MagicMock(return_value=None)
+
             
             response = client.get('/api/v1/history/1')
             assert response.status_code == 200
@@ -150,7 +167,8 @@ class TestHistoryEndpoints:
         with patch('backend.routes.history.get_db_context') as mock_db:
             mock_session = MagicMock()
             mock_session.query.return_value.count.return_value = 10
-            mock_session.query.return_value.scalar.side_effect = [8.5, 10, 5]
+            mock_session.query.return_value.scalar.side_effect = [8.5, 10, 5, 0] # Added one more for safety
+
             
             # Mock keyword analysis
             analyses = [
@@ -176,8 +194,10 @@ class TestHistoryEndpoints:
         """Test history endpoint pagination."""
         with patch('backend.routes.history.get_db_context') as mock_db:
             mock_session = MagicMock()
-            mock_session.query.return_value.offset.return_value.limit.return_value.all.return_value = []
+            mock_session.query.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = []
+            mock_session.query.return_value.order_by.return_value.count.return_value = 50
             mock_session.query.return_value.count.return_value = 50
+
             mock_db.return_value.__enter__ = MagicMock(return_value=mock_session)
             mock_db.return_value.__exit__ = MagicMock(return_value=None)
             

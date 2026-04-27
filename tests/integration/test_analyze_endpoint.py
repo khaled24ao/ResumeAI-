@@ -47,12 +47,14 @@ class TestAnalyzeEndpoint:
             "keywords_missing": ["Python", "Docker", "AWS", "CI/CD", "Kubernetes"]
         })
         
-        with patch('backend.routes.analyze.ai_service.analyze_resume', return_value=mock_response):
-            response = client.post(
-                '/api/v1/analyze',
-                data={'file': (sample_pdf, 'test.pdf', 'application/pdf')},
-                content_type='multipart/form-data'
-            )
+        with patch('backend.routes.analyze.pdf_service.extract_text', return_value="Sample resume text content"):
+            with patch('backend.routes.analyze.ai_service.analyze_resume', return_value=mock_response):
+                response = client.post(
+                    '/api/v1/analyze',
+                    data={'file': (sample_pdf, 'test.pdf', 'application/pdf')},
+                    content_type='multipart/form-data'
+                )
+
         
         assert response.status_code == 200
         data = json.loads(response.data)

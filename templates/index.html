@@ -4,80 +4,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="page-title">ResumeAI - Smart CV Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #00f2fe;
+            --secondary: #4facfe;
+            --accent: #00d4aa;
+            --bg: #050505;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text: #e0e0e0;
+            --text-muted: #888;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f0f0f;
-            color: #e0e0e0;
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
             padding: 2rem;
-            transition: direction 0.3s ease;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 242, 254, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(79, 172, 254, 0.05) 0%, transparent 20%);
         }
         
         [dir="rtl"] {
-            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            font-family: 'Outfit', 'Segoe UI', Tahoma, Arial, sans-serif;
         }
         
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
+            position: relative;
         }
         
         header {
             text-align: center;
-            margin-bottom: 3rem;
+            margin-bottom: 4rem;
+            animation: fadeInDown 0.8s ease-out;
         }
         
         h1 {
-            font-size: 2.5rem;
+            font-size: 3.5rem;
             font-weight: 700;
-            color: #00d4aa;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             margin-bottom: 0.5rem;
+            letter-spacing: -1px;
         }
         
         .subtitle {
-            color: #888;
-            font-size: 1rem;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            font-weight: 300;
         }
         
         .language-selector {
             position: fixed;
-            top: 1rem;
-            right: 1rem;
-            background: #1a1a1a;
-            border: 1px solid #333;
-            color: #e0e0e0;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
+            top: 2rem;
+            right: 2rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--card-border);
+            color: var(--text);
+            padding: 0.6rem 1.2rem;
+            border-radius: 12px;
             cursor: pointer;
             z-index: 1000;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .language-selector:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--primary);
         }
         
         .upload-section {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1.5rem;
+            gap: 2rem;
             margin-top: 2rem;
+            animation: fadeInUp 0.8s ease-out 0.2s backwards;
         }
         
         .upload-btn {
-            background: linear-gradient(135deg, #00d4aa, #00a88a);
-            color: #0f0f0f;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #000;
             border: none;
-            padding: 1rem 2.5rem;
-            font-size: 1.1rem;
+            padding: 1.2rem 3rem;
+            font-size: 1.2rem;
             font-weight: 600;
-            border-radius: 50px;
+            border-radius: 16px;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(0, 242, 254, 0.2);
         }
         
         .upload-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 212, 170, 0.3);
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 242, 254, 0.3);
+        }
+
+        .upload-btn:active {
+            transform: translateY(0) scale(0.98);
         }
         
         #file-input {
@@ -85,115 +122,158 @@
         }
         
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #333;
-            border-top-color: #00d4aa;
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--primary);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
             display: none;
         }
         
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         
         .error-msg {
-            background: #ff4444;
-            color: #fff;
-            padding: 1rem;
-            border-radius: 8px;
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid rgba(255, 68, 68, 0.2);
+            color: #ff6b6b;
+            padding: 1.2rem;
+            border-radius: 12px;
             margin-top: 1rem;
             display: none;
+            backdrop-filter: blur(10px);
+            max-width: 400px;
+            text-align: center;
         }
         
         .results {
-            margin-top: 2rem;
-            display: none;
+            margin-top: 4rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            animation: fadeInUp 0.8s ease-out;
         }
         
         .card {
-            background: #1a1a1a;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            border: 1px solid #333;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid var(--card-border);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.05);
         }
         
         .card h3 {
-            color: #888;
-            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-size: 0.75rem;
             text-transform: uppercase;
-            margin-bottom: 0.75rem;
-            letter-spacing: 0.5px;
+            margin-bottom: 1.5rem;
+            letter-spacing: 2px;
+            font-weight: 600;
         }
         
         .score-card {
+            grid-column: 1 / -1;
             text-align: center;
-            background: linear-gradient(135deg, #1a1a1a, #252525);
+            background: radial-gradient(circle at top right, rgba(0, 242, 254, 0.1), transparent);
         }
         
         .score-value {
-            font-size: 4rem;
+            font-size: 6rem;
             font-weight: 700;
-            color: #00d4aa;
+            background: linear-gradient(to bottom, #fff, #888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
         }
         
         .score-max {
-            font-size: 1.5rem;
-            color: #666;
+            font-size: 2rem;
+            color: var(--text-muted);
+            font-weight: 300;
         }
         
         .list-item {
             display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #2a2a2a;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 0.8rem 0;
+            color: #ccc;
+            font-size: 0.95rem;
+            line-height: 1.5;
         }
         
-        [dir="rtl"] .list-item {
-            flex-direction: row-reverse;
-        }
-        
-        .list-item:last-child { border-bottom: none; }
-        
-        .check-icon { color: #00d4aa; font-size: 1.2rem; }
+        .check-icon { color: var(--accent); font-size: 1.2rem; }
         .x-icon { color: #ff6b6b; font-size: 1.2rem; }
         
         .summary-text {
-            line-height: 1.6;
-            color: #ccc;
-            background: #252525;
-            padding: 1rem;
-            border-radius: 8px;
+            line-height: 1.8;
+            color: #ddd;
+            font-weight: 300;
         }
         
+        .keyword-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+
         .keyword {
-            display: inline-block;
-            background: #6b46c1;
-            color: #fff;
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
+            background: rgba(79, 172, 254, 0.1);
+            color: var(--secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
             font-size: 0.85rem;
-            margin: 0.25rem;
+            border: 1px solid rgba(79, 172, 254, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .keyword:hover {
+            background: rgba(79, 172, 254, 0.2);
+            transform: scale(1.05);
         }
         
         .history-link {
-            display: block;
-            text-align: center;
-            margin-top: 2rem;
-            color: #00d4aa;
+            display: inline-block;
+            margin-top: 4rem;
+            color: var(--text-muted);
             text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
         }
         
         .history-link:hover {
-            text-decoration: underline;
+            color: var(--primary);
+            background: rgba(255, 255, 255, 0.05);
         }
 
-        /* RTL support */
-        [dir="rtl"] .upload-section {
-            align-items: flex-end;
+        .footer {
+            text-align: center;
+            padding-bottom: 4rem;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 2.5rem; }
+            body { padding: 1rem; }
         }
     </style>
+
 </head>
 <body>
     <select class="language-selector" id="language-select" onchange="changeLanguage()">
@@ -321,11 +401,11 @@
         function displayResults(result) {
             const t = translations[currentLang];
             
-            resultsDiv.style.display = 'block';
+            resultsDiv.style.display = 'grid';
             resultsDiv.innerHTML = `
                 <div class="card score-card">
                     <h3>${t['results.score']}</h3>
-                    <div>
+                    <div class="score-display">
                         <span class="score-value">${result.score}</span>
                         <span class="score-max">/10</span>
                     </div>
@@ -333,22 +413,26 @@
                 
                 <div class="card">
                     <h3>${t['results.strengths']}</h3>
-                    ${result.strengths.map(s => `
-                        <div class="list-item">
-                            <span class="check-icon">✓</span>
-                            <span>${s}</span>
-                        </div>
-                    `).join('')}
+                    <div class="list">
+                        ${result.strengths.map(s => `
+                            <div class="list-item">
+                                <span class="check-icon">✦</span>
+                                <span>${s}</span>
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
                 
                 <div class="card">
                     <h3>${t['results.weaknesses']}</h3>
-                    ${result.weaknesses.map(w => `
-                        <div class="list-item">
-                            <span class="x-icon">✗</span>
-                            <span>${w}</span>
-                        </div>
-                    `).join('')}
+                    <div class="list">
+                        ${result.weaknesses.map(w => `
+                            <div class="list-item">
+                                <span class="x-icon">✧</span>
+                                <span>${w}</span>
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
                 
                 <div class="card">
@@ -358,10 +442,13 @@
                 
                 <div class="card">
                     <h3>${t['results.keywords']}</h3>
-                    ${result.keywords_missing.map(k => `<span class="keyword">${k}</span>`).join('')}
+                    <div class="keyword-container">
+                        ${result.keywords_missing.map(k => `<span class="keyword">${k}</span>`).join('')}
+                    </div>
                 </div>
             `;
         }
+
     </script>
 </body>
 </html>

@@ -13,9 +13,12 @@ logger = get_logger(__name__)
 
 analyze_bp = Blueprint("analyze", __name__, url_prefix="/api/v1")
 
-MAX_FILE_SIZE = 5 * 1024 * 1024
-MAX_TEXT_LENGTH = 3000
-ALLOWED_EXTENSIONS = {'.pdf'}
+from backend.config import file_config
+
+MAX_FILE_SIZE = file_config.max_size_bytes
+MAX_TEXT_LENGTH = file_config.max_text_length
+ALLOWED_EXTENSIONS = set(file_config.allowed_extensions)
+
 
 
 def allowed_file(filename: str) -> bool:
@@ -97,15 +100,22 @@ def analyze():
                 error="Invalid file type",
                 details="Only PDF files are allowed"
             ).model_dump()), 400
+
         
         # Validate file size
-        file_size = file.content_length or 0
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+        
         if file_size > MAX_FILE_SIZE:
+
+
             logger.warning(f"File too large: {file_size} bytes")
             return jsonify(ErrorResponse(
                 error="File too large",
                 details=f"Maximum size is {MAX_FILE_SIZE/1024/1024:.1f}MB"
             ).model_dump()), 400
+
         
         # Extract text from PDF
         try:

@@ -13,11 +13,11 @@ class TestAnalyzeResume:
 
     def test_analyze_resume_success(self):
         """Test successful API call returns response."""
-        mock_client = MagicMock(spec=Groq)
+        mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.choices[
-            0
-        ].message.content = '{"score": 8, "strengths": ["a"], "weaknesses": ["b"], "improved_summary": "c", "keywords_missing": ["d"]}'
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message = MagicMock()
+        mock_response.choices[0].message.content = '{"score": 8, "strengths": ["a"], "weaknesses": ["b"], "improved_summary": "c", "keywords_missing": ["d"]}'
         mock_client.chat.completions.create.return_value = mock_response
 
         with patch("backend.services.ai_service.Groq", return_value=mock_client):
@@ -45,8 +45,10 @@ class TestAnalyzeResume:
 
     def test_analyze_resume_custom_model(self):
         """Test using a custom model."""
-        mock_client = MagicMock(spec=Groq)
+        mock_client = MagicMock()
         mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message = MagicMock()
         mock_response.choices[0].message.content = '{"score": 7}'
         mock_client.chat.completions.create.return_value = mock_response
 
@@ -59,8 +61,10 @@ class TestAnalyzeResume:
 
     def test_analyze_resume_with_temperature_and_tokens(self):
         """Test that temperature and max_tokens are set correctly."""
-        mock_client = MagicMock(spec=Groq)
+        mock_client = MagicMock()
         mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message = MagicMock()
         mock_response.choices[0].message.content = '{"score": 8}'
         mock_client.chat.completions.create.return_value = mock_response
 
@@ -74,8 +78,10 @@ class TestAnalyzeResume:
 
     def test_analyze_resume_logging(self, caplog):
         """Test appropriate logging occurs."""
-        mock_client = MagicMock(spec=Groq)
+        mock_client = MagicMock()
         mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message = MagicMock()
         mock_response.choices[0].message.content = '{"score": 8}'
         mock_client.chat.completions.create.return_value = mock_response
 
@@ -90,7 +96,7 @@ class TestAnalyzeResume:
 
     def test_analyze_resume_unexpected_exception(self):
         """Test handling of unexpected exceptions."""
-        mock_client = MagicMock(spec=Groq)
+        mock_client = MagicMock()
         mock_client.chat.completions.create.side_effect = RuntimeError(
             "Unexpected error"
         )
@@ -99,3 +105,4 @@ class TestAnalyzeResume:
             with patch.dict("os.environ", {"GROQ_API_KEY": "test-key"}):
                 with pytest.raises(RuntimeError):
                     analyze_resume("Test prompt")
+

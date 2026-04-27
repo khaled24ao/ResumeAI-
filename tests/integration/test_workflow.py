@@ -48,15 +48,17 @@ class TestFullWorkflow:
             "keywords_missing": ["Kubernetes", "AWS"]
         })
         
-        with patch('backend.routes.analyze.ai_service.analyze_resume', return_value=mock_ai_response):
-            # 1. Submit analysis
-            response = client.post(
-                '/api/v1/analyze',
-                data={'file': (BytesIO(sample_pdf_bytes), 'resume.pdf', 'application/pdf')},
-                content_type='multipart/form-data'
-            )
-            
-            assert response.status_code == 200
+        with patch('backend.routes.analyze.pdf_service.extract_text', return_value="Sample resume text content"):
+            with patch('backend.routes.analyze.ai_service.analyze_resume', return_value=mock_ai_response):
+                # 1. Submit analysis
+                response = client.post(
+                    '/api/v1/analyze',
+                    data={'file': (BytesIO(sample_pdf_bytes), 'resume.pdf', 'application/pdf')},
+                    content_type='multipart/form-data'
+                )
+                
+                assert response.status_code == 200
+
             data = response.get_json()
             assert 'result' in data
             assert 'analysis_id' in data
@@ -85,13 +87,15 @@ class TestFullWorkflow:
         """Test analysis creation and deletion."""
         from io import BytesIO
         
-        with patch('backend.routes.analyze.ai_service.analyze_resume', return_value='{"score": 5}'):
-            # Create analysis
-            response = client.post(
-                '/api/v1/analyze',
-                data={'file': (BytesIO(sample_pdf_bytes), 'test.pdf', 'application/pdf')},
-                content_type='multipart/form-data'
-            )
+        with patch('backend.routes.analyze.pdf_service.extract_text', return_value="Some text"):
+            with patch('backend.routes.analyze.ai_service.analyze_resume', return_value='{"score": 5, "strengths": ["s1"], "weaknesses": ["w1"], "improved_summary": "Improved summary", "keywords_missing": ["k1"]}'):
+                # Create analysis
+                response = client.post(
+                    '/api/v1/analyze',
+                    data={'file': (BytesIO(sample_pdf_bytes), 'test.pdf', 'application/pdf')},
+                    content_type='multipart/form-data'
+                )
+
             analysis_id = response.get_json()['analysis_id']
             
             # Verify exists
@@ -110,14 +114,16 @@ class TestFullWorkflow:
         """Test errors are properly handled."""
         from io import BytesIO
         
-        # Mock AI to raise exception
-        with patch('backend.routes.analyze.ai_service.analyze_resume', side_effect=RuntimeError("AI down")):
-            response = client.post(
-                '/api/v1/analyze',
-                data={'file': (BytesIO(sample_pdf_bytes), 'test.pdf', 'application/pdf')},
-                content_type='multipart/form-data'
-            )
-            assert response.status_code == 500
+        with patch('backend.routes.analyze.pdf_service.extract_text', return_value="Some text"):
+            # Mock AI to raise exception
+            with patch('backend.routes.analyze.ai_service.analyze_resume', side_effect=RuntimeError("AI down")):
+                response = client.post(
+                    '/api/v1/analyze',
+                    data={'file': (BytesIO(sample_pdf_bytes), 'test.pdf', 'application/pdf')},
+                    content_type='multipart/form-data'
+                )
+                assert response.status_code == 500
+
             data = response.get_json()
             assert 'error' in data
 
@@ -127,12 +133,14 @@ class TestFullWorkflow:
         from backend.services.database import get_db_context
         
         # Create analysis
-        with patch('backend.routes.analyze.ai_service.analyze_resume', return_value='{"score": 6}'):
-            response = client.post(
-                '/api/v1/analyze',
-                data={'file': (BytesIO(sample_pdf_bytes), 'persist.pdf', 'application/pdf')},
-                content_type='multipart/form-data'
-            )
+        with patch('backend.routes.analyze.pdf_service.extract_text', return_value="Some text"):
+            with patch('backend.routes.analyze.ai_service.analyze_resume', return_value='{"score": 6, "strengths": ["s1"], "weaknesses": ["w1"], "improved_summary": "Improved summary", "keywords_missing": ["k1"]}'):
+                response = client.post(
+                    '/api/v1/analyze',
+                    data={'file': (BytesIO(sample_pdf_bytes), 'persist.pdf', 'application/pdf')},
+                    content_type='multipart/form-data'
+                )
+
             analysis_id = response.get_json()['analysis_id']
         
         # Query database directly
@@ -147,18 +155,20 @@ class TestFullWorkflow:
         from io import BytesIO
         
         # Mock AI to avoid real calls
-        with patch('backend.routes.analyze.ai_service.analyze_resume', return_value='{"score": 5}'):
-            # Make many requests quickly
-            responses = []
-            for _ in range(50):
-                response = client.post(
-                    '/api/v1/analyze',
-                    data={'file': (BytesIO(sample_pdf_bytes), 'test.pdf', 'application/pdf')},
-                    content_type='multipart/form-data'
-                )
-                responses.append(response.status_code)
-                if response.status_code == 429:
-                    break
+        with patch('backend.routes.analyze.pdf_service.extract_text', return_value="Some text"):
+            with patch('backend.routes.analyze.ai_service.analyze_resume', return_value='{"score": 5, "strengths": ["s1"], "weaknesses": ["w1"], "improved_summary": "Improved summary", "keywords_missing": ["k1"]}'):
+                # Make many requests quickly
+                responses = []
+                for _ in range(50):
+                    response = client.post(
+                        '/api/v1/analyze',
+                        data={'file': (BytesIO(sample_pdf_bytes), 'test.pdf', 'application/pdf')},
+                        content_type='multipart/form-data'
+                    )
+                    responses.append(response.status_code)
+                    if response.status_code == 429:
+                        break
+
             
             # Should eventually hit rate limit if many requests
             assert 200 in responses or 429 in responses
@@ -167,13 +177,15 @@ class TestFullWorkflow:
         """Test analyzing same file multiple times creates separate records."""
         from io import BytesIO
         
-        with patch('backend.routes.analyze.ai_service.analyze_resume', return_value='{"score": 7}'):
-            for _ in range(3):
-                client.post(
-                    '/api/v1/analyze',
-                    data={'file': (BytesIO(sample_pdf_bytes), 'repeat.pdf', 'application/pdf')},
-                    content_type='multipart/form-data'
-                )
+        with patch('backend.routes.analyze.pdf_service.extract_text', return_value="Some text"):
+            with patch('backend.routes.analyze.ai_service.analyze_resume', return_value='{"score": 7, "strengths": ["s1"], "weaknesses": ["w1"], "improved_summary": "Improved summary", "keywords_missing": ["k1"]}'):
+                for _ in range(3):
+                    client.post(
+                        '/api/v1/analyze',
+                        data={'file': (BytesIO(sample_pdf_bytes), 'repeat.pdf', 'application/pdf')},
+                        content_type='multipart/form-data'
+                    )
+
         
         # Get history
         response = client.get('/api/v1/history?per_page=10')
