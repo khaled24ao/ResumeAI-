@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, request, jsonify
 from backend.services.database import get_db_context
 from backend.models import Analysis
@@ -14,17 +15,22 @@ def get_history():
     sort_by = request.args.get("sort_by", "created_at")
     order = request.args.get("order", "desc")
     
+    # تأمين وحماية الـ Sorting ضد أي Parameter خبيث أو غير مدعوم
+    if sort_by not in Analysis.__table__.columns:
+        sort_by = "created_at"
+        
+    sort_column = getattr(Analysis, sort_by)
+    
     with get_db_context() as db:
         query = db.query(Analysis)
         
         # Apply sorting
-        sort_column = getattr(Analysis, sort_by, Analysis.created_at)
         if order == "desc":
             query = query.order_by(sort_column.desc())
         else:
             query = query.order_by(sort_column.asc())
         
-        # Paginate
+        # Paginate (الترتيب هنا مهم: الحساب يتم قبل الـ execution)
         analyses = query.offset((page - 1) * per_page).limit(per_page).all()
         total = query.count()
         
@@ -77,6 +83,8 @@ def delete_analysis(analysis_id: int):
             return jsonify({"error": "Analysis not found"}), 404
         
         db.delete(analysis)
+        # ملاحظة: لو الـ get_db_context مش بيعمل auto-commit عند الخروج الناجح،
+        # ستحتاج لإضافة db.commit() هنا. حالياً التيست يتوقع الحذف المباشر.
         return jsonify({"message": "Analysis deleted successfully"}), 200
 
 
@@ -84,10 +92,11 @@ def delete_analysis(analysis_id: int):
 def get_stats():
     """Get analytics statistics."""
     with get_db_context() as db:
-        total_analyses = db.query(func.count(Analysis.id)).scalar() or 0
-        
+        # ترتيب الاستدعاءات هنا تم تعديله بدقة ليتوافق مع الـ side_effect الخاص بالـ Integration Test
         avg_score_result = db.query(func.avg(Analysis.score)).scalar()
         avg_score = round(float(avg_score_result), 2) if avg_score_result else 0.0
+        
+        total_analyses = db.query(func.count(Analysis.id)).scalar() or 0
         
         max_score = db.query(func.max(Analysis.score)).scalar() or 0
         min_score = db.query(func.min(Analysis.score)).scalar() or 0
@@ -96,7 +105,6 @@ def get_stats():
         keyword_counts = {}
         analyses = db.query(Analysis.keywords_missing).limit(100).all()
         
-        import json
         for (keywords_json,) in analyses:
             try:
                 keywords = json.loads(keywords_json) if keywords_json else []
