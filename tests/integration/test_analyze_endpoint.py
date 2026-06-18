@@ -55,7 +55,6 @@ class TestAnalyzeEndpoint:
                     content_type='multipart/form-data'
                 )
 
-        
         assert response.status_code == 200
         data = json.loads(response.data)
         assert "result" in data
@@ -131,14 +130,15 @@ class TestAnalyzeEndpoint:
 
     def test_analyze_ai_service_error(self, client, sample_pdf):
         """Test handling of AI service errors."""
-        with patch('backend.routes.analyze.ai_service.analyze_resume') as mock_ai:
-            mock_ai.side_effect = Exception("AI service down")
-            
-            response = client.post(
-                '/api/v1/analyze',
-                data={'file': (sample_pdf, 'test.pdf', 'application/pdf')},
-                content_type='multipart/form-data'
-            )
+        with patch('backend.routes.analyze.pdf_service.extract_text', return_value="Valid resume text content"):
+            with patch('backend.routes.analyze.ai_service.analyze_resume') as mock_ai:
+                mock_ai.side_effect = Exception("AI service down")
+                
+                response = client.post(
+                    '/api/v1/analyze',
+                    data={'file': (sample_pdf, 'test.pdf', 'application/pdf')},
+                    content_type='multipart/form-data'
+                )
         
         assert response.status_code == 500
         data = json.loads(response.data)
@@ -146,12 +146,13 @@ class TestAnalyzeEndpoint:
 
     def test_analyze_invalid_ai_response(self, client, sample_pdf):
         """Test handling of malformed AI response."""
-        with patch('backend.routes.analyze.ai_service.analyze_resume', return_value="Not JSON"):
-            response = client.post(
-                '/api/v1/analyze',
-                data={'file': (sample_pdf, 'test.pdf', 'application/pdf')},
-                content_type='multipart/form-data'
-            )
+        with patch('backend.routes.analyze.pdf_service.extract_text', return_value="Valid resume text content"):
+            with patch('backend.routes.analyze.ai_service.analyze_resume', return_value="Not JSON"):
+                response = client.post(
+                    '/api/v1/analyze',
+                    data={'file': (sample_pdf, 'test.pdf', 'application/pdf')},
+                    content_type='multipart/form-data'
+                )
         
         assert response.status_code == 500
 
@@ -159,12 +160,13 @@ class TestAnalyzeEndpoint:
         """Test handling of AI response that fails Pydantic validation."""
         # Missing required fields
         invalid_json = json.dumps({"score": 15})  # Out of range and missing fields
-        with patch('backend.routes.analyze.ai_service.analyze_resume', return_value=invalid_json):
-            response = client.post(
-                '/api/v1/analyze',
-                data={'file': (sample_pdf, 'test.pdf', 'application/pdf')},
-                content_type='multipart/form-data'
-            )
+        with patch('backend.routes.analyze.pdf_service.extract_text', return_value="Valid resume text content"):
+            with patch('backend.routes.analyze.ai_service.analyze_resume', return_value=invalid_json):
+                response = client.post(
+                    '/api/v1/analyze',
+                    data={'file': (sample_pdf, 'test.pdf', 'application/pdf')},
+                    content_type='multipart/form-data'
+                )
         
         assert response.status_code == 500
 
@@ -187,9 +189,17 @@ class TestAnalyzeEndpoint:
         
         def mock_extract(file):
             return long_text
+            
+        mock_valid_response = json.dumps({
+            "score": 8,
+            "strengths": ["Good formatting"],
+            "weaknesses": ["Needs keys"],
+            "improved_summary": "Truncated summary test",
+            "keywords_missing": ["Git"]
+        })
         
         with patch('backend.routes.analyze.pdf_service.extract_text', side_effect=mock_extract):
-            with patch('backend.routes.analyze.ai_service.analyze_resume', return_value='{"score": 8}'):
+            with patch('backend.routes.analyze.ai_service.analyze_resume', return_value=mock_valid_response):
                 response = client.post(
                     '/api/v1/analyze',
                     data={'file': (sample_pdf, 'test.pdf', 'application/pdf')},
