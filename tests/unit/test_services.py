@@ -138,8 +138,9 @@ class TestAIService:
         mock_response.choices[0].message = MagicMock()
         mock_response.choices[0].message.content = '{"score": 8}'
         
+        # تحديث طريقة استدعاء الخطأ لتتوافق مع تحديثات Groq SDK الحالية
         mock_client.chat.completions.create.side_effect = [
-            APIConnectionError("Network error"),
+            APIConnectionError(message="Network error", request=MagicMock()),
             mock_response
         ]
         with patch('backend.services.ai_service.Groq', return_value=mock_client):
@@ -147,7 +148,6 @@ class TestAIService:
                 result = analyze_resume("Test")
                 assert result == '{"score": 8}'
                 assert mock_client.chat.completions.create.call_count == 2
-
 
 
 class TestDatabaseService:
@@ -267,4 +267,4 @@ class TestPydanticSchemas:
         from pydantic import ValidationError
         data = {"score": 8}
         with pytest.raises(ValidationError):
-            AnalysisResult(**data)
+            AnalysisResult(**data)
