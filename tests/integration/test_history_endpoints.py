@@ -44,11 +44,21 @@ class TestHistoryEndpoints:
 
     def test_get_history_empty(self, client):
         """Test getting empty history."""
-        # Assuming empty database or mocking
         with patch('backend.routes.history.get_db_context') as mock_db:
             mock_session = MagicMock()
-            mock_session.query.return_value.offset.return_value.limit.return_value.all.return_value = []
-            mock_session.query.return_value.count.return_value = 0
+            mock_query = MagicMock()
+            
+            # نمط السلسلة المرنة (Fluent Chain Mocking)
+            mock_session.query.return_value = mock_query
+            mock_query.filter.return_value = mock_query
+            mock_query.order_by.return_value = mock_query
+            mock_query.offset.return_value = mock_query
+            mock_query.limit.return_value = mock_query
+            
+            # القيم النهائية
+            mock_query.all.return_value = []
+            mock_query.count.return_value = 0
+            
             mock_db.return_value.__enter__ = MagicMock(return_value=mock_session)
             mock_db.return_value.__exit__ = MagicMock(return_value=None)
             
@@ -70,16 +80,23 @@ class TestHistoryEndpoints:
         
         with patch('backend.routes.history.get_db_context') as mock_db:
             mock_session = MagicMock()
-            # Mock the models to have a to_dict method
+            mock_query = MagicMock()
+            
+            mock_session.query.return_value = mock_query
+            mock_query.filter.return_value = mock_query
+            mock_query.order_by.return_value = mock_query
+            mock_query.offset.return_value = mock_query
+            mock_query.limit.return_value = mock_query
+            
             mock_obj = MagicMock()
             mock_obj.to_dict.return_value = mock_analysis
             
-            mock_session.query.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [mock_obj]
-            mock_session.query.return_value.count.return_value = 1
+            mock_query.all.return_value = [mock_obj]
+            mock_query.count.return_value = 1
+            
             mock_db.return_value.__enter__ = MagicMock(return_value=mock_session)
             mock_db.return_value.__exit__ = MagicMock(return_value=None)
 
-            
             response = client.get('/api/v1/history')
             assert response.status_code == 200
             data = json.loads(response.data)
@@ -97,7 +114,7 @@ class TestHistoryEndpoints:
         mock_analysis.keywords_missing_list = ["Python", "Docker"]
         mock_analysis.created_at = datetime.utcnow()
         mock_analysis.processing_time_ms = 1000
-        # Mock to_dict for HistoryDetail
+        
         mock_analysis.to_dict.return_value = {
             "id": 1, "filename": "test.pdf", "score": 7,
             "improved_summary": "Good candidate",
@@ -110,11 +127,15 @@ class TestHistoryEndpoints:
         
         with patch('backend.routes.history.get_db_context') as mock_db:
             mock_session = MagicMock()
-            mock_session.query.return_value.filter.return_value.first.return_value = mock_analysis
+            mock_query = MagicMock()
+            
+            mock_session.query.return_value = mock_query
+            mock_query.filter.return_value = mock_query
+            mock_query.first.return_value = mock_analysis
+            
             mock_db.return_value.__enter__ = MagicMock(return_value=mock_session)
             mock_db.return_value.__exit__ = MagicMock(return_value=None)
 
-            
             response = client.get('/api/v1/history/1')
             assert response.status_code == 200
             data = json.loads(response.data)
@@ -126,7 +147,12 @@ class TestHistoryEndpoints:
         """Test getting analysis that doesn't exist."""
         with patch('backend.routes.history.get_db_context') as mock_db:
             mock_session = MagicMock()
-            mock_session.query.return_value.filter.return_value.first.return_value = None
+            mock_query = MagicMock()
+            
+            mock_session.query.return_value = mock_query
+            mock_query.filter.return_value = mock_query
+            mock_query.first.return_value = None
+            
             mock_db.return_value.__enter__ = MagicMock(return_value=mock_session)
             mock_db.return_value.__exit__ = MagicMock(return_value=None)
             
@@ -141,7 +167,12 @@ class TestHistoryEndpoints:
         
         with patch('backend.routes.history.get_db_context') as mock_db:
             mock_session = MagicMock()
-            mock_session.query.return_value.filter.return_value.first.return_value = mock_analysis
+            mock_query = MagicMock()
+            
+            mock_session.query.return_value = mock_query
+            mock_query.filter.return_value = mock_query
+            mock_query.first.return_value = mock_analysis
+            
             mock_db.return_value.__enter__ = MagicMock(return_value=mock_session)
             mock_db.return_value.__exit__ = MagicMock(return_value=None)
             
@@ -155,7 +186,12 @@ class TestHistoryEndpoints:
         """Test deleting analysis that doesn't exist."""
         with patch('backend.routes.history.get_db_context') as mock_db:
             mock_session = MagicMock()
-            mock_session.query.return_value.filter.return_value.first.return_value = None
+            mock_query = MagicMock()
+            
+            mock_session.query.return_value = mock_query
+            mock_query.filter.return_value = mock_query
+            mock_query.first.return_value = None
+            
             mock_db.return_value.__enter__ = MagicMock(return_value=mock_session)
             mock_db.return_value.__exit__ = MagicMock(return_value=None)
             
@@ -166,17 +202,24 @@ class TestHistoryEndpoints:
         """Test getting analytics statistics."""
         with patch('backend.routes.history.get_db_context') as mock_db:
             mock_session = MagicMock()
-            mock_session.query.return_value.count.return_value = 10
-            mock_session.query.return_value.scalar.side_effect = [8.5, 10, 5, 0] # Added one more for safety
-
+            mock_query = MagicMock()
             
-            # Mock keyword analysis
+            mock_session.query.return_value = mock_query
+            mock_query.filter.return_value = mock_query
+            mock_query.order_by.return_value = mock_query
+            mock_query.limit.return_value = mock_query
+            
+            mock_query.count.return_value = 10
+            # الـ side_effect بيمشي بالترتيب مع نداءات scalar() المتتالية في الـ route
+            mock_query.scalar.side_effect = [8.5, 10, 5, 0]
+
+            # تجهيز بيانات الكلمات الدلالية الوهمية
             analyses = [
                 (json.dumps(["Python", "Docker"]),),
                 (json.dumps(["Python", "AWS"]),),
                 (json.dumps(["Docker"]),),
             ]
-            mock_session.query.return_value.limit.return_value.all.return_value = analyses
+            mock_query.all.return_value = analyses
             
             mock_db.return_value.__enter__ = MagicMock(return_value=mock_session)
             mock_db.return_value.__exit__ = MagicMock(return_value=None)
@@ -194,16 +237,22 @@ class TestHistoryEndpoints:
         """Test history endpoint pagination."""
         with patch('backend.routes.history.get_db_context') as mock_db:
             mock_session = MagicMock()
-            mock_session.query.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = []
-            mock_session.query.return_value.order_by.return_value.count.return_value = 50
-            mock_session.query.return_value.count.return_value = 50
-
+            mock_query = MagicMock()
+            
+            mock_session.query.return_value = mock_query
+            mock_query.filter.return_value = mock_query
+            mock_query.order_by.return_value = mock_query
+            mock_query.offset.return_value = mock_query
+            mock_query.limit.return_value = mock_query
+            
+            mock_query.all.return_value = []
+            mock_query.count.return_value = 50
+            
             mock_db.return_value.__enter__ = MagicMock(return_value=mock_session)
             mock_db.return_value.__exit__ = MagicMock(return_value=None)
             
             response = client.get('/api/v1/history?page=2&per_page=10')
             assert response.status_code == 200
             
-            # Verify offset was calculated correctly
-            offset_call = mock_session.query.return_value.offset.call_args
-            assert offset_call[0][0] == 10  # (page-1) * per_page
+            # الآن الاستدعاء آمن تماماً وسيتم التحقق منه أياً كان الترتيب
+            mock_query.offset.assert_called_once_with(10)
