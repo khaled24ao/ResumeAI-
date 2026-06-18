@@ -1,4 +1,5 @@
 import os
+import html  # تم إضافة المكتبة هنا لتنظيف المدخلات وحماية التطبيق من الـ HTML Injection
 from dotenv import load_dotenv
 
 
@@ -153,10 +154,12 @@ def create_app(config_object=None) -> Flask:
             )
             history_data = []
             for a in analyses:
+                # تم استخدام html.escape هنا لتنظيف اسم الملف ومنع أي اختراق
+                safe_filename = html.escape(a.filename) if a.filename else "-"
                 history_data.append(
                     {
                         "id": a.id,
-                        "filename": a.filename,
+                        "filename": safe_filename,
                         "score": a.score,
                         "created_at": a.created_at.strftime("%Y-%m-%d %H:%M")
                         if a.created_at
@@ -165,7 +168,7 @@ def create_app(config_object=None) -> Flask:
                     }
                 )
 
-        html = """<!DOCTYPE html>
+        html_content = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -205,18 +208,18 @@ def create_app(config_object=None) -> Flask:
         <div class="table-container">
 """
         if not history_data:
-            html += (
+            html_content += (
                 '<p class="empty">No analyses yet. Upload a resume to get started!</p>'
             )
         else:
-            html += """<table class="table">
+            html_content += """<table class="table">
                 <thead>
                     <tr><th>ID</th><th>Filename</th><th>Score</th><th>Date</th><th>Time</th></tr>
                 </thead>
                 <tbody>
 """
             for a in history_data:
-                html += f"""<tr>
+                html_content += f"""<tr>
                     <td>#{a["id"]}</td>
                     <td style="font-weight: 500;">{a["filename"]}</td>
                     <td class="score">{a["score"]}/10</td>
@@ -224,19 +227,15 @@ def create_app(config_object=None) -> Flask:
                     <td class="date">{a["processing_time_ms"]}ms</td>
                 </tr>
 """
-            html += """</tbody></table>"""
+            html_content += """</tbody></table>"""
 
-        html += """
+        html_content += """
         </div>
     </div>
 </body>
 </html>"""
 
-        return html
+        return html_content
 
     logger.info(f"Application initialized in {app.config.get('ENV', 'unknown')} mode")
     return app
-
-
-# Note: The app instance is created by the root app.py
-# This module only exports create_app to avoid double initialization
