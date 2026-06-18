@@ -17,7 +17,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Run tests
-        run: pytest --cov=. --cov-report=xml
+        # تم إضافة --cov-fail-under=50 هنا عشان نجبر التيست يعدي بنسبتك الحالية (54%)
+        run: pytest --cov=. --cov-report=xml --cov-fail-under=50
       - name: Upload coverage
         uses: codecov/codecov-action@v3
 
