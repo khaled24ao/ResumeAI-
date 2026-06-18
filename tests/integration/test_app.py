@@ -14,10 +14,8 @@ class TestApplication:
 
     def test_app_factory_development(self):
         """Test app factory in development mode."""
-        # نضع كل المتغيرات الممكنة لضمان تفعيل الـ Debug في Flask الحديث والقديم
         with patch.dict('os.environ', {'FLASK_ENV': 'development', 'FLASK_DEBUG': '1'}):
             app = create_app()
-            # لضمان تخطي أي إعدادات صارمة مثبتة داخل الـ factory نفسه بالخطأ
             app.config["DEBUG"] = True 
             assert app.config["DEBUG"] is True
 
@@ -37,8 +35,9 @@ class TestApplication:
         """Test error handlers return proper JSON."""
         app = create_app()
         app.config["TESTING"] = True
+        # تعطيل تمرير الأخطاء لجعل الـ Flask يعالج الـ 500 عبر الـ Error Handlers الخاصة به
+        app.config["PROPAGATE_EXCEPTIONS"] = False
         
-        # الحل: تسجيل الـ Route قبل فتح الـ test_client وعمل أي طلبات
         @app.route('/trigger-500')
         def trigger_500():
             raise Exception("Test error")
@@ -95,7 +94,6 @@ class TestApplication:
         with app.test_client() as client:
             response = client.get('/metrics')
             assert response.status_code == 200
-            # الحل: استخدام in بدل المقارنة الحرفية الصارمة لتفادي الـ charset
             assert 'text/plain' in response.content_type
             content = response.data.decode('utf-8')
             assert len(content) > 0
